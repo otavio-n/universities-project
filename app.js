@@ -1,55 +1,35 @@
-const express = require("express");
-const http = require("http");
-const mongoose = require("mongoose");
+const express = require('express');
+const http = require('http');
+const mongoose = require('mongoose');
+
+const urls = require('./endpoints');
+const University = require('./schema');
 
 const app = express();
 
 app.use(express.urlencoded({extended: true}));
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static('public'));
 
-mongoose.connect("mongodb://localhost:27017/universitiesDB", {useNewUrlParser: true});
-
-const universitySchema = new mongoose.Schema ({
-    alpha_two_code: String,
-    web_pages: [],
-    name: String,
-    country: String,
-    domains: [],
-    state_province: String
-});
-
-const University = mongoose.model("University", universitySchema);
+mongoose.connect('mongodb://localhost:27017/universitiesDB', {useNewUrlParser: true});
 
 ////////////    Load and Save All Universities      ///////////////
 
-app.get("/", function(req, res){
+app.get('/', function(req, res){
 
-    const countries = [
-        "argentina",
-        "brazil",
-        "chile",
-        "colombia",
-        "paraguay",
-        "peru",
-        "suriname",
-        "uruguay"
-    ];
     var completedRequests = 0;
 
-    countries.forEach(function(country){
-
-        const url = "http://universities.hipolabs.com/search?country=" + country;
+    urls.forEach(function(url){
 
         http.get(url, function(response){
-            console.log(country + " " + response.statusCode);
+            console.log(url + ' response: ' + response.statusCode);
 
             let chunks = [];
     
-            response.on("data", function(data){
+            response.on('data', function(data){
                 chunks.push(data);
 
-            }).on("end", function () {
+            }).on('end', function () {
 
                 let data = Buffer.concat(chunks);
                 const requests = JSON.parse(data);
@@ -62,29 +42,29 @@ app.get("/", function(req, res){
                         name: request.name,
                         country: request.country,
                         domains: request.domains,
-                        state_province: request["state-province"]
+                        state_province: request['state-province']
                     });
 
                     university.save();
                 });
 
-                if (completedRequests++ == countries.length - 1) {
-                     console.log("Finished!");
+                if (completedRequests++ == urls.length - 1) {
+                     console.log('Finished!');
                 }
-            }).on("error", (err) => {
+            }).on('error', (err) => {
                 res.send(err);
             });
 
         });
         
     });
-    res.send("Server is up and running!");
+    res.send('Server is up and running!');
 });  
 
 ///////////     API REST    ////////////
 
 ////Requests Targetting all Universities////
-app.route("/universities")
+app.route('/universities')
 
 //Get universities
 .get(function(req, res){
@@ -116,7 +96,7 @@ app.route("/universities")
     University.find
     (
         filter,
-        "_id name country state_province", 
+        '_id name country state_province', 
         function(err, foundUniversities){
             if(!err) {
                 res.send(foundUniversities);
@@ -135,13 +115,13 @@ app.route("/universities")
         {
             name: req.body.name,
             country: req.body.country,
-            state_province: req.body["state-province"]
+            state_province: req.body['state-province']
         },
         function(err, foundUniversity) {
             if(err) {
                 res.send(err);
             } else if (foundUniversity) {
-                res.send("This university has already been saved.");
+                res.send('This university has already been saved.');
             } else {
 
                 //Adding new university
@@ -151,12 +131,12 @@ app.route("/universities")
                     name: req.body.name,
                     country: req.body.country,
                     domains: req.body.domains,
-                    state_province: req.body["state-province"]
+                    state_province: req.body['state-province']
                 });
 
                 newUniversity.save(function(err){
                     if (!err){
-                        res.send("Successfully added new university.");
+                        res.send('Successfully added new university.');
                     } else {
                         res.send(err);
                     }
@@ -168,7 +148,7 @@ app.route("/universities")
 
 
 ////Requests Targetting A Specific University///
-app.route("/universities/:id")
+app.route('/universities/:id')
 
 //Get university by id
 .get(function(req, res){
@@ -177,7 +157,7 @@ app.route("/universities/:id")
         if (foundUniversity) {
             res.send(foundUniversity);
         } else {
-            res.send("No universities found.");
+            res.send('No universities found.');
         }
     });
 })
@@ -192,7 +172,7 @@ app.route("/universities/:id")
         domains: req.body.domains},
         function(err){
             if(!err){
-                res.send("Successfully updated university.");
+                res.send('Successfully updated university.');
             } else {
                 res.send(err);
             }
@@ -205,7 +185,7 @@ app.route("/universities/:id")
 
     University.deleteOne({_id: req.params.id}, function(err){
         if (!err) {
-            res.send("Successfully deleted the corresponding university.");
+            res.send('Successfully deleted the corresponding university.');
         } else {
             res.send(err);
         }
@@ -214,5 +194,5 @@ app.route("/universities/:id")
 
 
 app.listen(3000, function(){
-    console.log("Server is running on port 3000.");
+    console.log('Server is running on port 3000.');
 });
